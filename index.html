@@ -1,5 +1,37 @@
+<!DOCTYPE html>
 <html>
+<head>
+    <meta charset="UTF-8">
+    <title>Steem Login Test</title>
+</head>
 <body>
-<h1>Hello from GitHub Pages!</h1>
+
+    <h1>My Game</h1>
+
+    <button onclick="login()">
+        Login with Steem
+    </button>
+
+    <p id="user"></p>
+
+    <script>
+        function login()
+        {
+            if (!window.steem_keychain)
+            {
+                alert("Install Steem Keychain!");
+                return;
+            }
+
+            const username = prompt("Enter your Steem username");
+
+            window.steem_keychain.requestHandshake(function()
+            {
+                document.getElementById("user").innerText =
+                    "Logged in as: " + username;
+            });
+        }
+    </script>
+
 </body>
 </html>
