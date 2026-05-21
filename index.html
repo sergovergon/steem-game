@@ -2,16 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Schulte Table</title>
+<title>Schulte Test</title>
 
 <style>
 
 body
 {
     margin: 0;
-    font-family: Arial;
     background: #202020;
     color: white;
+    font-family: Arial;
 
     height: 100vh;
 
@@ -20,7 +20,7 @@ body
     align-items: center;
 }
 
-#game
+#container
 {
     display: flex;
     gap: 60px;
@@ -46,18 +46,18 @@ body
 
     background: #404040;
 
+    border-radius: 10px;
+
     display: flex;
     justify-content: center;
     align-items: center;
 
-    font-size: 32px;
-
-    border-radius: 10px;
+    font-size: 30px;
 
     cursor: pointer;
     user-select: none;
 
-    transition: 0.2s;
+    transition: 0.15s;
 }
 
 .cell:hover
@@ -65,14 +65,19 @@ body
     background: #555;
 }
 
-.done
+.correct
 {
     background: green;
 }
 
+.wrong
+{
+    background: crimson;
+}
+
 #side
 {
-    width: 260px;
+    width: 520px;
 }
 
 button
@@ -80,14 +85,14 @@ button
     width: 100%;
     padding: 14px;
 
-    font-size: 22px;
-
     border: none;
     border-radius: 10px;
 
+    font-size: 22px;
+
     cursor: pointer;
 
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 #startBtn
@@ -102,15 +107,23 @@ button
     color: white;
 }
 
+#rawBtn
+{
+    background: #6a1b9a;
+    color: white;
+}
+
 #timer
 {
-    font-size: 42px;
+    font-size: 44px;
 
     width: 180px;
 
     text-align: center;
 
     margin-bottom: 20px;
+
+    font-family: monospace;
 }
 
 table
@@ -133,7 +146,7 @@ td, th
 
 <body>
 
-<div id="game">
+<div id="container">
 
     <div id="board"></div>
 
@@ -148,13 +161,24 @@ td, th
         </div>
 
         <table>
-            <tr>
-                <th>Size</th>
-                <th>Time</th>
-            </tr>
+
+            <thead>
+                <tr>
+                    <th>Size</th>
+                    <th>Test1</th>
+                    <th>Test2</th>
+                    <th>Test3</th>
+                    <th>Avg</th>
+                </tr>
+            </thead>
 
             <tbody id="results"></tbody>
+
         </table>
+
+        <button id="rawBtn" onclick="showRawData()">
+            Raw Data
+        </button>
 
         <button id="publishBtn" onclick="publishResults()">
             Publish
@@ -167,14 +191,26 @@ td, th
 <script>
 
 let size = 3;
+
 let nextNumber = 1;
 
 let running = false;
 
-let startTime;
+let attemptsPerSize = 3;
+
+let currentAttempt = 1;
+
 let timerInterval;
 
-let results = [];
+let globalStartTime;
+
+let levelStartTime;
+
+let lastCorrectTime;
+
+let allResults = {};
+
+let rawData = [];
 
 const board =
     document.getElementById("board");
@@ -192,7 +228,7 @@ function shuffle(arr)
 {
     for(let i = arr.length - 1; i > 0; i--)
     {
-        const j =
+        let j =
             Math.floor(Math.random() * (i + 1));
 
         [arr[i], arr[j]] =
@@ -205,6 +241,10 @@ function createBoard()
     board.innerHTML = "";
 
     nextNumber = 1;
+
+    levelStartTime = Date.now();
+
+    lastCorrectTime = levelStartTime;
 
     board.style.gridTemplateColumns =
         `repeat(${size}, 80px)`;
@@ -220,10 +260,11 @@ function createBoard()
 
     for(let n of numbers)
     {
-        const cell =
+        let cell =
             document.createElement("div");
 
         cell.className = "cell";
+
         cell.innerText = n;
 
         cell.onclick = function()
@@ -235,7 +276,28 @@ function createBoard()
 
             if(n === nextNumber)
             {
-                cell.classList.add("done");
+                cell.classList.add("correct");
+
+                const now = Date.now();
+
+                rawData.push({
+
+                    type: "correct",
+
+                    size: size,
+
+                    attempt: currentAttempt,
+
+                    number: n,
+
+                    totalElapsed:
+                        (now - globalStartTime) / 1000,
+
+                    reactionTime:
+                        (now - lastCorrectTime) / 1000
+                });
+
+                lastCorrectTime = now;
 
                 nextNumber++;
 
@@ -243,6 +305,32 @@ function createBoard()
                 {
                     finishLevel();
                 }
+            }
+            else
+            {
+                cell.classList.add("wrong");
+
+                setTimeout(() =>
+                {
+                    cell.classList.remove("wrong");
+                }, 200);
+
+                rawData.push({
+
+                    type: "mistake",
+
+                    size: size,
+
+                    attempt: currentAttempt,
+
+                    clicked: n,
+
+                    expected: nextNumber,
+
+                    totalElapsed:
+                        (Date.now() - globalStartTime)
+                        / 1000
+                });
             }
         };
 
@@ -253,7 +341,7 @@ function createBoard()
 function updateTimer()
 {
     const t =
-        (Date.now() - startTime) / 1000;
+        (Date.now() - globalStartTime) / 1000;
 
     timer.innerText =
         t.toFixed(1).padStart(5, "0");
@@ -261,17 +349,21 @@ function updateTimer()
 
 function startGame()
 {
-    results = [];
+    allResults = {};
 
-    resultsBody.innerHTML = "";
+    rawData = [];
 
     size = 3;
+
+    currentAttempt = 1;
+
+    resultsBody.innerHTML = "";
 
     running = true;
 
     startBtn.innerText = "STOP";
 
-    startTime = Date.now();
+    globalStartTime = Date.now();
 
     timerInterval =
         setInterval(updateTimer, 100);
@@ -304,48 +396,98 @@ function toggleGame()
 
 function finishLevel()
 {
-    const currentTime =
-        ((Date.now() - startTime) / 1000)
-        .toFixed(1);
+    const time =
+        ((Date.now() - levelStartTime)
+        / 1000);
 
-    results.push({
-        size: size + "x" + size,
-        time: currentTime
-    });
-
-    addResult(size + "x" + size, currentTime);
-
-    if(size < 5)
+    if(!allResults[size])
     {
-        size++;
+        allResults[size] = [];
+    }
+
+    allResults[size].push(time);
+
+    renderResults();
+
+    if(currentAttempt < attemptsPerSize)
+    {
+        currentAttempt++;
 
         createBoard();
     }
     else
     {
-        running = false;
+        currentAttempt = 1;
 
-        clearInterval(timerInterval);
+        if(size < 5)
+        {
+            size++;
 
-        startBtn.innerText = "START";
+            createBoard();
+        }
+        else
+        {
+            finishGame();
+        }
     }
 }
 
-function addResult(level, time)
+function finishGame()
 {
-    const row =
-        document.createElement("tr");
+    running = false;
 
-    row.innerHTML =
-        `<td>${level}</td>
-         <td>${time}</td>`;
+    clearInterval(timerInterval);
 
-    resultsBody.appendChild(row);
+    startBtn.innerText = "START";
+}
+
+function renderResults()
+{
+    resultsBody.innerHTML = "";
+
+    for(let s in allResults)
+    {
+        let arr = allResults[s];
+
+        let avg =
+            arr.reduce((a,b)=>a+b,0)
+            / arr.length;
+
+        let row = "<tr>";
+
+        row += `<td>${s}x${s}</td>`;
+
+        for(let i = 0; i < attemptsPerSize; i++)
+        {
+            row +=
+            `<td>${
+                arr[i]
+                ? arr[i].toFixed(1)
+                : "-"
+            }</td>`;
+        }
+
+        row +=
+            `<td>${avg.toFixed(1)}</td>`;
+
+        row += "</tr>";
+
+        resultsBody.innerHTML += row;
+    }
+}
+
+function showRawData()
+{
+    console.log(rawData);
+
+    alert(
+        "Raw data printed to console (F12)"
+    );
 }
 
 function publishResults()
 {
-    if(results.length === 0)
+    if(Object.keys(allResults).length === 0)
     {
         alert("No results");
         return;
@@ -361,13 +503,32 @@ function publishResults()
         prompt("Steem username");
 
     let body =
-        "Schulte Table Results\n\n";
+        "Schulte Test Results\n\n";
 
-    for(let r of results)
+    for(let s in allResults)
     {
+        let arr = allResults[s];
+
+        let avg =
+            arr.reduce((a,b)=>a+b,0)
+            / arr.length;
+
         body +=
-            r.size + " : " + r.time + " sec\n";
+            `${s}x${s} : `;
+
+        for(let t of arr)
+        {
+            body +=
+                t.toFixed(1) + " ";
+        }
+
+        body +=
+            ` AVG=${avg.toFixed(1)}\n`;
     }
+
+    body +=
+        "\nRaw events: "
+        + rawData.length;
 
     const permlink =
         "schulte-" + Date.now();
@@ -379,16 +540,24 @@ function publishResults()
             parent_permlink: "games",
 
             author: username,
+
             permlink: permlink,
 
-            title: "My Schulte Results",
+            title:
+                "My Schulte Test",
 
             body: body,
 
-            json_metadata: JSON.stringify({
-                tags: ["game", "schulte"],
-                app: "schulte/0.1"
-            })
+            json_metadata:
+                JSON.stringify({
+                    tags: [
+                        "game",
+                        "psychology",
+                        "schulte"
+                    ],
+
+                    app: "schulte/0.1"
+                })
         }
     ]];
 
@@ -405,7 +574,7 @@ function publishResults()
             }
             else
             {
-                alert("Error");
+                alert("Publish error");
             }
         }
     );
