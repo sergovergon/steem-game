@@ -2,36 +2,58 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Steem Login Test</title>
+    <title>Steem Post Test</title>
 </head>
 <body>
 
-    <h1>My Game</h1>
+<h1>Steem Game</h1>
 
-    <button onclick="login()">
-        Login with Steem
-    </button>
+<button onclick="postToSteem()">
+    Post to Steem
+</button>
 
-    <p id="user"></p>
+<script>
 
-    <script>
-        function login()
+function postToSteem()
+{
+    if (!window.steem_keychain)
+    {
+        alert("Install Steem Keychain!");
+        return;
+    }
+
+    const username = prompt("Enter your Steem username");
+
+    const permlink =
+        "game-post-" + Date.now();
+
+    window.steem_keychain.requestPost(
+        username,
+        "My Game Result",
+        "I played the game on GitHub Pages!",
+        permlink,
+        "",
+        JSON.stringify({
+            tags: ["game", "steem", "test"],
+            app: "mygame/0.1"
+        }),
+        function(response)
         {
-            if (!window.steem_keychain)
+            console.log(response);
+
+            if (response.success)
             {
-                alert("Install Steem Keychain!");
-                return;
+                alert("Post created!");
             }
-
-            const username = prompt("Enter your Steem username");
-
-            window.steem_keychain.requestHandshake(function()
+            else
             {
-                document.getElementById("user").innerText =
-                    "Logged in as: " + username;
-            });
+                alert("Canceled or error");
+            }
         }
-    </script>
+    );
+}
+
+</script>
 
 </body>
 </html>
