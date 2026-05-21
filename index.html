@@ -13,24 +13,30 @@ body
     background: #202020;
     color: white;
 
+    height: 100vh;
+
     display: flex;
     justify-content: center;
     align-items: center;
-
-    height: 100vh;
 }
 
 #game
 {
     display: flex;
-    align-items: center;
     gap: 60px;
+    align-items: flex-start;
 }
 
 #board
 {
     display: grid;
     gap: 6px;
+
+    min-width: 420px;
+    min-height: 420px;
+
+    justify-content: center;
+    align-content: center;
 }
 
 .cell
@@ -45,10 +51,11 @@ body
     align-items: center;
 
     font-size: 32px;
-    cursor: pointer;
-    user-select: none;
 
     border-radius: 10px;
+
+    cursor: pointer;
+    user-select: none;
 
     transition: 0.2s;
 }
@@ -65,13 +72,60 @@ body
 
 #side
 {
-    font-size: 30px;
+    width: 260px;
 }
 
-#info
+button
 {
-    margin-top: 20px;
-    font-size: 24px;
+    width: 100%;
+    padding: 14px;
+
+    font-size: 22px;
+
+    border: none;
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    margin-bottom: 20px;
+}
+
+#startBtn
+{
+    background: #2e7d32;
+    color: white;
+}
+
+#publishBtn
+{
+    background: #1565c0;
+    color: white;
+}
+
+#timer
+{
+    font-size: 42px;
+
+    width: 180px;
+
+    text-align: center;
+
+    margin-bottom: 20px;
+}
+
+table
+{
+    width: 100%;
+    border-collapse: collapse;
+
+    margin-bottom: 20px;
+}
+
+td, th
+{
+    border: 1px solid #666;
+    padding: 8px;
+    text-align: center;
 }
 
 </style>
@@ -81,13 +135,31 @@ body
 
 <div id="game">
 
-    <div>
-        <div id="board"></div>
-        <div id="info"></div>
-    </div>
+    <div id="board"></div>
 
     <div id="side">
-        ⏱ <span id="timer">0.0</span>
+
+        <button id="startBtn" onclick="toggleGame()">
+            START
+        </button>
+
+        <div id="timer">
+            000.0
+        </div>
+
+        <table>
+            <tr>
+                <th>Size</th>
+                <th>Time</th>
+            </tr>
+
+            <tbody id="results"></tbody>
+        </table>
+
+        <button id="publishBtn" onclick="publishResults()">
+            Publish
+        </button>
+
     </div>
 
 </div>
@@ -97,20 +169,34 @@ body
 let size = 3;
 let nextNumber = 1;
 
+let running = false;
+
 let startTime;
 let timerInterval;
 
-const board = document.getElementById("board");
-const timer = document.getElementById("timer");
-const info = document.getElementById("info");
+let results = [];
+
+const board =
+    document.getElementById("board");
+
+const timer =
+    document.getElementById("timer");
+
+const startBtn =
+    document.getElementById("startBtn");
+
+const resultsBody =
+    document.getElementById("results");
 
 function shuffle(arr)
 {
     for(let i = arr.length - 1; i > 0; i--)
     {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j =
+            Math.floor(Math.random() * (i + 1));
 
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        [arr[i], arr[j]] =
+            [arr[j], arr[i]];
     }
 }
 
@@ -134,13 +220,19 @@ function createBoard()
 
     for(let n of numbers)
     {
-        const cell = document.createElement("div");
+        const cell =
+            document.createElement("div");
 
         cell.className = "cell";
         cell.innerText = n;
 
         cell.onclick = function()
         {
+            if(!running)
+            {
+                return;
+            }
+
             if(n === nextNumber)
             {
                 cell.classList.add("done");
@@ -149,16 +241,7 @@ function createBoard()
 
                 if(nextNumber > size * size)
                 {
-                    if(size < 5)
-                    {
-                        size++;
-
-                        setTimeout(createBoard, 500);
-                    }
-                    else
-                    {
-                        finishGame();
-                    }
+                    finishLevel();
                 }
             }
         };
@@ -172,22 +255,22 @@ function updateTimer()
     const t =
         (Date.now() - startTime) / 1000;
 
-    timer.innerText = t.toFixed(1);
-}
-
-function finishGame()
-{
-    clearInterval(timerInterval);
-
-    const result =
-        (Date.now() - startTime) / 1000;
-
-    info.innerHTML =
-        "Finished in " + result.toFixed(1) + " sec";
+    timer.innerText =
+        t.toFixed(1).padStart(5, "0");
 }
 
 function startGame()
 {
+    results = [];
+
+    resultsBody.innerHTML = "";
+
+    size = 3;
+
+    running = true;
+
+    startBtn.innerText = "STOP";
+
     startTime = Date.now();
 
     timerInterval =
@@ -196,7 +279,137 @@ function startGame()
     createBoard();
 }
 
-startGame();
+function stopGame()
+{
+    running = false;
+
+    clearInterval(timerInterval);
+
+    startBtn.innerText = "START";
+
+    board.innerHTML = "";
+}
+
+function toggleGame()
+{
+    if(running)
+    {
+        stopGame();
+    }
+    else
+    {
+        startGame();
+    }
+}
+
+function finishLevel()
+{
+    const currentTime =
+        ((Date.now() - startTime) / 1000)
+        .toFixed(1);
+
+    results.push({
+        size: size + "x" + size,
+        time: currentTime
+    });
+
+    addResult(size + "x" + size, currentTime);
+
+    if(size < 5)
+    {
+        size++;
+
+        createBoard();
+    }
+    else
+    {
+        running = false;
+
+        clearInterval(timerInterval);
+
+        startBtn.innerText = "START";
+    }
+}
+
+function addResult(level, time)
+{
+    const row =
+        document.createElement("tr");
+
+    row.innerHTML =
+        `<td>${level}</td>
+         <td>${time}</td>`;
+
+    resultsBody.appendChild(row);
+}
+
+function publishResults()
+{
+    if(results.length === 0)
+    {
+        alert("No results");
+        return;
+    }
+
+    if(!window.steem_keychain)
+    {
+        alert("Install Steem Keychain");
+        return;
+    }
+
+    const username =
+        prompt("Steem username");
+
+    let body =
+        "Schulte Table Results\n\n";
+
+    for(let r of results)
+    {
+        body +=
+            r.size + " : " + r.time + " sec\n";
+    }
+
+    const permlink =
+        "schulte-" + Date.now();
+
+    const operations = [[
+        "comment",
+        {
+            parent_author: "",
+            parent_permlink: "games",
+
+            author: username,
+            permlink: permlink,
+
+            title: "My Schulte Results",
+
+            body: body,
+
+            json_metadata: JSON.stringify({
+                tags: ["game", "schulte"],
+                app: "schulte/0.1"
+            })
+        }
+    ]];
+
+    window.steem_keychain.requestBroadcast(
+        username,
+        operations,
+        "posting",
+
+        function(response)
+        {
+            if(response.success)
+            {
+                alert("Published!");
+            }
+            else
+            {
+                alert("Error");
+            }
+        }
+    );
+}
 
 </script>
 
