@@ -2,11 +2,9 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Steem Post Test</title>
+    <title>Steem Post</title>
 </head>
 <body>
-
-<h1>Steem Game</h1>
 
 <button onclick="postToSteem()">
     Post to Steem
@@ -18,36 +16,49 @@ function postToSteem()
 {
     if (!window.steem_keychain)
     {
-        alert("Install Steem Keychain!");
+        alert("Install Steem Keychain");
         return;
     }
 
-    const username = prompt("Enter your Steem username");
+    const username = prompt("Steem username");
 
-    const permlink =
-        "game-post-" + Date.now();
+    const permlink = "test-post-" + Date.now();
 
-    window.steem_keychain.requestPost(
+    const operations = [[
+        "comment",
+        {
+            parent_author: "",
+            parent_permlink: "test",
+
+            author: username,
+            permlink: permlink,
+
+            title: "Hello from GitHub Pages",
+
+            body: "This post was created from my JavaScript game!",
+
+            json_metadata: JSON.stringify({
+                tags: ["test", "game"],
+                app: "mygame/0.1"
+            })
+        }
+    ]];
+
+    window.steem_keychain.requestBroadcast(
         username,
-        "My Game Result",
-        "I played the game on GitHub Pages!",
-        permlink,
-        "",
-        JSON.stringify({
-            tags: ["game", "steem", "test"],
-            app: "mygame/0.1"
-        }),
+        operations,
+        "posting",
         function(response)
         {
             console.log(response);
 
-            if (response.success)
+            if(response.success)
             {
-                alert("Post created!");
+                alert("POST CREATED!");
             }
             else
             {
-                alert("Canceled or error");
+                alert("ERROR");
             }
         }
     );
