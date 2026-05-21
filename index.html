@@ -1,68 +1,202 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Steem Post96</title>
+<meta charset="UTF-8">
+<title>Schulte Table</title>
+
+<style>
+
+body
+{
+    margin: 0;
+    font-family: Arial;
+    background: #202020;
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    height: 100vh;
+}
+
+#game
+{
+    display: flex;
+    align-items: center;
+    gap: 60px;
+}
+
+#board
+{
+    display: grid;
+    gap: 6px;
+}
+
+.cell
+{
+    width: 80px;
+    height: 80px;
+
+    background: #404040;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 32px;
+    cursor: pointer;
+    user-select: none;
+
+    border-radius: 10px;
+
+    transition: 0.2s;
+}
+
+.cell:hover
+{
+    background: #555;
+}
+
+.done
+{
+    background: green;
+}
+
+#side
+{
+    font-size: 30px;
+}
+
+#info
+{
+    margin-top: 20px;
+    font-size: 24px;
+}
+
+</style>
 </head>
+
 <body>
 
-<button onclick="postToSteem()">
-    Post to Steem
-</button>
+<div id="game">
+
+    <div>
+        <div id="board"></div>
+        <div id="info"></div>
+    </div>
+
+    <div id="side">
+        ⏱ <span id="timer">0.0</span>
+    </div>
+
+</div>
 
 <script>
 
-function postToSteem()
+let size = 3;
+let nextNumber = 1;
+
+let startTime;
+let timerInterval;
+
+const board = document.getElementById("board");
+const timer = document.getElementById("timer");
+const info = document.getElementById("info");
+
+function shuffle(arr)
 {
-    if (!window.steem_keychain)
+    for(let i = arr.length - 1; i > 0; i--)
     {
-        alert("Install Steem Keychain");
-        return;
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+function createBoard()
+{
+    board.innerHTML = "";
+
+    nextNumber = 1;
+
+    board.style.gridTemplateColumns =
+        `repeat(${size}, 80px)`;
+
+    let numbers = [];
+
+    for(let i = 1; i <= size * size; i++)
+    {
+        numbers.push(i);
     }
 
-    const username = prompt("Steem username");
+    shuffle(numbers);
 
-    const permlink = "test-post-" + Date.now();
+    for(let n of numbers)
+    {
+        const cell = document.createElement("div");
 
-    const operations = [[
-        "comment",
+        cell.className = "cell";
+        cell.innerText = n;
+
+        cell.onclick = function()
         {
-            parent_author: "",
-            parent_permlink: "test",
-
-            author: username,
-            permlink: permlink,
-
-            title: "Hello from GitHub Pages",
-
-            body: "This post was created from my JavaScript game!",
-
-            json_metadata: JSON.stringify({
-                tags: ["test", "game"],
-                app: "mygame/0.1"
-            })
-        }
-    ]];
-
-    window.steem_keychain.requestBroadcast(
-        username,
-        operations,
-        "posting",
-        function(response)
-        {
-            console.log(response);
-
-            if(response.success)
+            if(n === nextNumber)
             {
-                alert("POST CREATED!");
+                cell.classList.add("done");
+
+                nextNumber++;
+
+                if(nextNumber > size * size)
+                {
+                    if(size < 5)
+                    {
+                        size++;
+
+                        setTimeout(createBoard, 500);
+                    }
+                    else
+                    {
+                        finishGame();
+                    }
+                }
             }
-            else
-            {
-                alert("ERROR");
-            }
-        }
-    );
+        };
+
+        board.appendChild(cell);
+    }
 }
+
+function updateTimer()
+{
+    const t =
+        (Date.now() - startTime) / 1000;
+
+    timer.innerText = t.toFixed(1);
+}
+
+function finishGame()
+{
+    clearInterval(timerInterval);
+
+    const result =
+        (Date.now() - startTime) / 1000;
+
+    info.innerHTML =
+        "Finished in " + result.toFixed(1) + " sec";
+}
+
+function startGame()
+{
+    startTime = Date.now();
+
+    timerInterval =
+        setInterval(updateTimer, 100);
+
+    createBoard();
+}
+
+startGame();
 
 </script>
 
